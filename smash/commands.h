@@ -24,7 +24,5 @@ struct cmd {
 
 // Function Prototypes
 void perrorSmash(const char* cmd, const char* msg);
-int bigParser(char* line);
-int smallParser(string cmd_stg);
-void add_string_to_vector(vector<string> &commands, char *start, char *end);
+
 #endif // COMMANDS_H
