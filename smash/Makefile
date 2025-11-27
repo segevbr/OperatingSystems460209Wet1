@@ -32,8 +32,7 @@ $(TARGET): $(OBJS)
 
 # Rule to clean up the generated files
 clean:
-	# Use -f option for rm to prevent errors if files don't exist
-	rm -f $(TARGET) $(OBJS)
-	# The original list of files also includes a my_system_call.o, which is not in the OBJS list.
-	# It's good practice to ensure all generated files are cleaned.
-	rm -f my_system_call.o
+	# Delete the main executable
+	rm -f $(TARGET)
+	# Delete all .o files EXCEPT my_system_call.o
+	rm -f $(filter-out my_system_call.o, $(OBJS))
