@@ -5,6 +5,9 @@
 =============================================================================*/
 #include <stdlib.h>
 #include <stdio.h>
+#include <cstring>
+#include <unistd.h>
+
 
 #define CMD_LENGTH_MAX 120
 #define ARGS_NUM_MAX 20
@@ -25,6 +28,11 @@ static inline void* _validatedMalloc(size_t size)
     void* ptr = malloc(size);
     if(!ptr) ERROR_EXIT("malloc");
     return ptr;
+}
+
+typedef struct cmd{
+    char* cmd;
+    char* args[MAX_ARGS];
 }
 
 // example usage:
