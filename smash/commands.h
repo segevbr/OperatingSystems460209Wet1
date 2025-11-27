@@ -1,65 +1,30 @@
 #ifndef COMMANDS_H
 #define COMMANDS_H
-/*=============================================================================
-* includes, defines, usings
-=============================================================================*/
-#include <stdlib.h>
-#include <stdio.h>
-#include <cstring>
-#include <unistd.h>
 
+#include <string>
+#include <vector>
 
-#define CMD_LENGTH_MAX 120
-#define ARGS_NUM_MAX 20
-#define JOBS_NUM_MAX 100
+using namespace std;
+// Assuming ARGS_NUM_MAX is needed and defined here or globally.
+#ifndef ARGS_NUM_MAX
+#define ARGS_NUM_MAX 80 // Default max arguments if not already defined
+#endif
 
-/*=============================================================================
-* error handling - some useful macros and examples of error handling,
-* feel free to not use any of this
-=============================================================================*/
-#define ERROR_EXIT(msg) \
-    do { \
-        fprintf(stderr, "%s: %d\n%s", __FILE__, __LINE__, msg); \
-        exit(1); \
-    } while(0);
+// In C++, 'typedef struct name {} name;' is redundant.
+// We just define the struct.
+struct cmd {
+	char* cmd;
+	char* args[ARGS_NUM_MAX];
+	
+	//vector<string> aliases;
 
-static inline void* _validatedMalloc(size_t size)
-{
-    void* ptr = malloc(size);
-    if(!ptr) ERROR_EXIT("malloc");
-    return ptr;
-}
+	int numArgs = 0;
+	bool isBg = false;
+};
 
-typedef struct cmd{
-    char* cmd;
-    char* args[MAX_ARGS];
-}
-
-// example usage:
-// char* bufffer = MALLOC_VALIDATED(char, MAX_LINE_SIZE);
-// which automatically includes error handling
-#define MALLOC_VALIDATED(type, size) \
-    ((type*)_validatedMalloc((size)))
-
-
-/*=============================================================================
-* error definitions
-=============================================================================*/
-typedef enum  {
-	INVALID_COMMAND = 0,
-	//feel free to add more values here or delete this
-} ParsingError;
-
-typedef enum {
-	SMASH_SUCCESS = 0,
-	SMASH_QUIT,
-	SMASH_FAIL
-	//feel free to add more values here or delete this
-} CommandResult;
-
-/*=============================================================================
-* global functions
-=============================================================================*/
-int parseCommandExample(char* line);
-
-#endif //COMMANDS_H
+// Function Prototypes
+void perrorSmash(const char* cmd, const char* msg);
+int bigParser(char* line);
+int smallParser(string cmd_stg);
+void add_string_to_vector(vector<string> &commands, char *start, char *end);
+#endif // COMMANDS_H

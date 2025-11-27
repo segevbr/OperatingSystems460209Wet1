@@ -1,45 +1,97 @@
-//commands.c
 #include "commands.h"
 
-//example function for printing errors from internal commands
-void perrorSmash(const char* cmd, const char* msg)
+// Required for C++ standard library features
+#include <vector>
+#include <string>
+#include <cstring>
+#include <cstdio>
+#include <cstdlib>
+#include <iostream>
+#include <ostream>
+
+using namespace std;
+
+// example function for printing errors from internal commands
+void perrorSmash(const char *cmd, const char *msg)
 {
-    fprintf(stderr, "smash error:%s%s%s\n",
-        cmd ? cmd : "",
-        cmd ? ": " : "",
-        msg);
+	fprintf(stderr, "smash error:%s%s%s\n",
+			cmd ? cmd : "",
+			cmd ? ": " : "",
+			msg);
 }
 
-//example function for parsing commands
-int parseCmdExample(char* line)
+int bigParser(char *line)
 {
-	char* delimiters = " \t\n"; //parsing should be done by spaces, tabs or newlines
-	char* cmd = strtok(line, delimiters); //read strtok documentation - parses string by delimiters
-	if(!cmd)
-		return INVALID_COMMAND; //this means no tokens were found, most like since command is invalid
-	
-	char* args[MAX_ARGS];
-	int nargs = 0;
-	args[0] = cmd; //first token before spaces/tabs/newlines should be command name
-	for(int i = 1; i < MAX_ARGS; i++)
+	if (!line)
+		return -1;
+
+	// Create pointer token for strtok operation
+	char *ptr = line;
+	char *start = line;
+
+	vector<string> commands;
+
+	while (*ptr)
 	{
-		args[i] = strtok(NULL, delimiters); //first arg NULL -> keep tokenizing from previous call
-		if(!args[i])
-			break;
-		nargs++;
+		if (!strncmp(ptr, "&&", 2))
+		{ // Success == 0
+			add_string_to_vector(commands, start, ptr);
+			ptr += 2;
+			start = ptr;
+		}
+		else
+		{
+			ptr++;
+		}
 	}
-	/*
-	At this point cmd contains the command string and the args array contains
-	the arguments. You can return them via struct/class, for example in C:
-		typedef struct {
-			char* cmd;
-			char* args[MAX_ARGS];
-		} Command;
-	Or maybe something more like this:
-		typedef struct {
-			bool bg;
-			char** args;
-			int nargs;
-		} CmdArgs;
-	*/
+	add_string_to_vector(commands, start, ptr);
+
+	int res;
+	for (size_t i = 0; i < commands.size(); i++)
+	{
+		res = smallParser(commands[i]);
+	}
+	return res;
+}
+
+void add_string_to_vector(vector<string> &commands, char *start, char *end)
+{
+	char *cmd = strndup(start, end - start);
+	string str_cmd = cmd;
+	commands.push_back(str_cmd);
+}
+
+// example function for parsing commands
+int smallParser(string cmd_stg)
+{
+	char *mod_str = strdup(cmd_stg.c_str());
+	if (!mod_str)
+		return -1;
+
+	const char *delims = " \t\n";		   // parsing should be done by spaces, tabs or newlines
+	char *token = strtok(mod_str, delims); // read strtok documentation - parses string by delimiters
+
+	if (!token)
+	{
+		free(mod_str);
+		return -1;
+	}
+	string cmd = token;
+
+	vector<string> args;
+	args.push_back(cmd);
+
+	for (int i = 1; i < ARGS_NUM_MAX; i++)
+	{
+		token = strtok(NULL, delims);
+		if (token == NULL)
+			break;
+
+		string arg = token;
+		args.push_back(arg);
+	}
+	
+	free(mod_str);
+
+	return 0;
 }

@@ -7,7 +7,9 @@
 
 #include "commands.h"
 #include "signals.h"
+#include <cstring>
 
+#define CMD_LENGTH_MAX 80
 /*=============================================================================
 * classes/structs declarations
 =============================================================================*/
@@ -28,7 +30,7 @@ int main(int argc, char* argv[])
 		fgets(_line, CMD_LENGTH_MAX, stdin);
 		strcpy(_cmd, _line);
 		//execute command
-
+		bigParser(_cmd);
 		//initialize buffers for next command
 		_line[0] = '\0';
 		_cmd[0] = '\0';
