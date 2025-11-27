@@ -3,15 +3,17 @@
 /*=============================================================================
 * includes, defines, usings
 =============================================================================*/
-#include <stdlib.h>
-#include <stdio.h>
-#include <cstring>
-#include <unistd.h>
 
+#include <iostream>
+#include <cstdio>
+#include <string>
+#include <list>
+#include <vector>
 
 #define CMD_LENGTH_MAX 120
 #define ARGS_NUM_MAX 20
 #define JOBS_NUM_MAX 100
+
 
 /*=============================================================================
 * error handling - some useful macros and examples of error handling,
@@ -30,18 +32,14 @@ static inline void* _validatedMalloc(size_t size)
     return ptr;
 }
 
-typedef struct cmd{
-    char* cmd;
-    char* args[MAX_ARGS];
-}
+typedef struct cmd;
 
-// example usage:
 // char* bufffer = MALLOC_VALIDATED(char, MAX_LINE_SIZE);
 // which automatically includes error handling
 #define MALLOC_VALIDATED(type, size) \
     ((type*)_validatedMalloc((size)))
 
-
+''
 /*=============================================================================
 * error definitions
 =============================================================================*/
