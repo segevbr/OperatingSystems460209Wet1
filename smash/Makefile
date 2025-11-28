@@ -3,7 +3,7 @@ CXX = g++
 
 # Update the compiler flags (CXXFLAGS) to be C++-appropriate
 # Using -std=c++11 or higher is common for modern C++ projects.
-CXXFLAGS = -std=c++17 -Wall -Werror -pedantic-errors -pthread -DNDEBUG
+CXXFLAGS = -std=c++11 -g -Wall -Werror -pedantic-errors -pthread -DNDEBUG
 
 # Use wildcard to find all .cpp source files
 SRCS = $(wildcard *.cpp)
@@ -11,6 +11,10 @@ SRCS = $(wildcard *.cpp)
 # Generate the list of object files (.o) from the list of source files (.cpp)
 # The substitution must change .cpp to .o
 OBJS = $(SRCS:.cpp=.o)
+
+
+EXTERNAL_OBJS = my_system_call.o
+
 
 TARGET = smash
 
@@ -20,9 +24,9 @@ TARGET = smash
 all: $(TARGET)
 
 # Rule to link the object files into the final executable
-$(TARGET): $(OBJS)
+$(TARGET): $(OBJS) $(EXTERNAL_OBJS)
 	# Use CXX for linking
-	$(CXX) $(CXXFLAGS) $(OBJS) -o $(TARGET)
+	$(CXX) $(CXXFLAGS) $(OBJS) $(EXTERNAL_OBJS) -o $(TARGET)
 
 # Rule to compile each .cpp file into a .o object file (Pattern Rule)
 # This rule will be used for files like commands.o, signals.o, smash.o, etc.
@@ -35,4 +39,4 @@ clean:
 	# Delete the main executable
 	rm -f $(TARGET)
 	# Delete all .o files EXCEPT my_system_call.o
-	rm -f $(filter-out my_system_call.o, $(OBJS))
+	rm -f $(filter-out my_system_call.o, $(OBJS))
