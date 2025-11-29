@@ -1,6 +1,6 @@
 #include "commands.h"
 
-// ------- Mock -------- // 
+extern Jobs_list jobs_list;
 
 
 // ------- Built-in commands wrappers ------ //
@@ -27,7 +27,14 @@ int cd(const vector<string> &args) {
 	string path = args[1];
 	return cd_func(path);
 }
-// int jobs(const vector<string> &args);
+int jobs(const vector<string> &args){
+	if (args.empty()) return COMMAND_FAILURE;
+	if (args.size() != 1){
+		perrorSmash("jobs", "expected 0 arguments");
+		return COMMAND_FAILURE;
+	}
+	return jobs_func();
+}
 // int kill(const vector<string> &args);
 // int fg(const vector<string> &args);
 // int bg(const vector<string> &args);
@@ -119,7 +126,7 @@ int cd_func(const string path) {
 }
 
 int jobs_func() {
-	return COMMAND_SUCCESSFUL;
+	return jobs_list.print_jobs();
 }
 
 int kill_func(int sig_num, int job_id){

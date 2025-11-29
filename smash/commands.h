@@ -4,6 +4,7 @@
 #include "my_system_call.h"
 #include "globals.h"
 #include "fd_handler.h"
+#include "jobs.h"
 #include <string>
 #include <vector>
 #include <vector>
