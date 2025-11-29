@@ -32,7 +32,16 @@ int cd(const vector<string> &args) {
 // int fg(const vector<string> &args);
 // int bg(const vector<string> &args);
 // int quit(const vector<string> &args);
-// int diff(const vector<string> &args);
+int diff(const vector<string> &args){
+	if (args.empty()) return COMMAND_FAILURE;
+	if (args.size() != 3 || args[1].empty() || args[2].empty()){
+		perrorSmash("diff", "expected 2 arguments");
+		return COMMAND_FAILURE;
+	}
+	string path1 = args[1];
+	string path2 = args[2];
+	return diff_func(path1, path2);
+}
 // ----------------------------------------- //
 
 // ------------- Built-in commands ----------- //
@@ -126,32 +135,28 @@ int diff_func(const string path1, const string path2) {
 	ssize_t bytes_read2;
 	int result = COMMAND_FAILURE; // assume files are different
 
-	// Directory check path1
-	int fd_dir_test = (int)my_system_call(SYS_OPEN, path1.c_str(), 
-											O_RDONLY | O_DIRECTORY);
-	int err = errno;
-	if (fd_dir_test >= 0){ // path1 is directory
+	// Directory check for both paths
+	int res1 = path_check(path1);
+	int res2 = path_check(path2);
 
-		if (my_system_call(SYS_CLOSE, fd_dir_test) == -1){ // try to close
-			check_fd_err(err, SYS_CLOSE);
-			return COMMAND_FAILURE;
-		}
+	if (res1 == IS_DIR || res2 == IS_DIR){ 
+		perrorSmash("diff", "paths are not files");
+		return COMMAND_FAILURE;
+	} else if (res1 == PATH_NOT_EXIST || res2 == PATH_NOT_EXIST){
+		perrorSmash("diff", "expected valid paths for files");
+		return COMMAND_FAILURE;
 	}
 
-	// Existence check path1
-
-
 	// open file 1
-	fd1 = my_system_call(SYS_OPEN, path1.c_str(), O_RDONLY);
-	// ENOENT - Path doesn't exists
-	// EISDIR - Is a directory
+	fd1 = (int)my_system_call(SYS_OPEN, path1.c_str(), O_RDONLY);
+	int err = errno;
 	if (fd1 == -1){
 		check_fd_err(err, SYS_OPEN);
 		return COMMAND_FAILURE;
 	}
 	
 	// open file 2
-	fd2 = my_system_call(SYS_OPEN, path2.c_str(), O_RDONLY);
+	fd2 =(int)my_system_call(SYS_OPEN, path2.c_str(), O_RDONLY);
 	err = errno;
 	if (fd2 == -1){
 		check_fd_err(err, SYS_OPEN); // failed to open file2 
@@ -179,7 +184,6 @@ int diff_func(const string path1, const string path2) {
 
 		// Check if both reads are EOF in the same time 
 		if (bytes_read1 == 0 && bytes_read2 == 0){
-			cout << COMMAND_SUCCESSFUL << endl;
 			result = COMMAND_SUCCESSFUL;
 			break;
 		}
@@ -202,6 +206,8 @@ int diff_func(const string path1, const string path2) {
 	if (close_fd(fd1) == COMMAND_FAILURE || close_fd(fd2) == COMMAND_FAILURE)
 		result = COMMAND_FAILURE;
 	
+	// print the result
+	cout << result << endl;
 	return result;
 }
 
