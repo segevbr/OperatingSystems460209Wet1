@@ -76,7 +76,7 @@ int Jobs_list::print_job(int job_id){
 
     // print
     cout << "[" << job_id << "] " << cmd_string << ": " << job_pid << " " << 
-    time_elapsed << " secs" << is_stopped << endl;
+    time_elapsed << " secs " << is_stopped << endl;
 
     return COMMAND_SUCCESSFUL;
 }
