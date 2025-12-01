@@ -25,4 +25,8 @@ struct cmd {
 // Function Prototypes
 void perrorSmash(const char* cmd, const char* msg);
 
+int cmdCd(const std::vector<std::string>& args);
+int cmdKill(const std::vector<std::string>& args);
+int cmdPwd(const std::vector<std::string>& args);
+
 #endif // COMMANDS_H
