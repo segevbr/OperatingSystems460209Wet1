@@ -136,7 +136,9 @@ int smallParser(string cmd_stg) {
 
 int run_command(vector<string> &command) {
     bool isBg = command.back() == "&";
-    isBg ? cout << "im" << endl : cout << "not" << endl;
+    if(isBg){
+        command.pop_back();
+    }
     int success = -1;
 
     //find the right command
