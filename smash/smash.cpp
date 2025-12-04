@@ -24,7 +24,7 @@
 /*=============================================================================
 * classes/structs declarations
 =============================================================================*/
-
+Jobs_list jobs_list;
 /*=============================================================================
 * global variables & data structures
 =============================================================================*/
@@ -33,9 +33,16 @@ char _line[CMD_LENGTH_MAX];
 typedef int (*CmdHandler)(const vector<string> &args);
 
 unordered_map<string, CmdHandler> commandTable = { //todo change for the right commands when we have their names
-        {"cd",   cmdCd},
-        {"kill", cmdKill},
-        {"pwd",  cmdPwd}
+        {"showpid", showpid},
+        {"pwd",     pwd},
+        {"cd",      cd},
+        {"jobs",    jobs},
+      //  {"kill",    kill},
+       // {"fg",      fg},
+      //  {"bg",      bg},
+      //  {"quit",    quit},
+        {"diff",    diff},
+
 };
 
 int bigParser(char *line);
@@ -136,7 +143,7 @@ int smallParser(string cmd_stg) {
 
 int run_command(vector<string> &command) {
     bool isBg = command.back() == "&";
-    if(isBg){
+    if (isBg) {
         command.pop_back();
     }
     int success = -1;
