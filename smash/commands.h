@@ -18,6 +18,7 @@
 #include <climits>
 #include <fcntl.h>
 #include <unistd.h>
+#include <signal.h>
 
 using namespace std;
 
@@ -65,8 +66,5 @@ int diff_func(const string path1, const string path2);
 
 // Helper functions
 string get_current_wd_string();
-void check_fd_err(int err, int sys_call);
-int dir_check(const string path);
-int close_fd(int &fd);
-
+bool is_number(const string& str);
 #endif // COMMANDS_H

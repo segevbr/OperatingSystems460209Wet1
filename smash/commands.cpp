@@ -1,8 +1,5 @@
 #include "commands.h"
 
-extern Jobs_list jobs_list;
-
-
 // ------- Built-in commands wrappers ------ //
 int showpid(const vector<string> &args) {
 	if (args.size() != 1) {
@@ -35,10 +32,63 @@ int jobs(const vector<string> &args){
 	}
 	return jobs_func();
 }
-// int kill(const vector<string> &args);
-// int fg(const vector<string> &args);
-// int bg(const vector<string> &args);
-// int quit(const vector<string> &args);
+int kill(const vector<string> &args){
+	if (args.empty()) return COMMAND_FAILURE;
+	else if (args.size() != 3 || !is_number(args[1]) || !is_number(args[2])){
+		perrorSmash("kill", "invalid_arguments");
+		return COMMAND_FAILURE;
+	}
+	int signum = stoi(args[1]);
+	if (signum < 0 || signum > 20) {
+		perrorSmash("kill", "invalid arguments");
+		return COMMAND_FAILURE;
+	}
+
+	int job_id = stoi(args[2]);
+	return kill_func(signum, job_id);
+}
+int fg(const vector<string> &args) {
+	if (args.empty()) return COMMAND_FAILURE;
+	if (args.size() == 1) {
+		return fg_func(0);
+	} else if (args.size() == 2 && is_number(args[1])){
+		return fg_func(stoi(args[1]));
+	} 
+	
+	perrorSmash("fg", "invalid arguments");
+	return COMMAND_FAILURE;
+}
+int bg(const vector<string> &args) {
+	if (args.empty()) return COMMAND_FAILURE;
+	if (args.size() == 1){
+		return bg_func(0);
+	} else if (args.size() == 2 && is_number(args[1])){
+		return bg_func(stoi(args[1]));
+	}
+
+	perrorSmash("bg", "invalid arguments");
+	return COMMAND_FAILURE;
+}
+int quit(const vector<string> &args){
+	if (args.empty()) return COMMAND_FAILURE;
+	if (args.size() > 2) {
+		perrorSmash("quit", "expected 0 or 1 arguments");
+		return COMMAND_FAILURE;
+	}
+	if (args.size() == 1){ // no kill argument
+		return quit_func(false);
+	}
+	if (args.size() == 2){
+		string killArg = args[1];
+		if (strncmp(killArg.c_str(),"kill", 4) == 0){
+			return quit_func(true);
+		} else {
+			perrorSmash("quit", "unexpected arguments");
+			return COMMAND_FAILURE;
+		}
+	}
+	return COMMAND_SUCCESSFUL;
+}
 int diff(const vector<string> &args){
 	if (args.empty()) return COMMAND_FAILURE;
 	if (args.size() != 3 || args[1].empty() || args[2].empty()){
@@ -69,18 +119,6 @@ int pwd_func() {
 		return COMMAND_SUCCESSFUL;
     } 
 	return COMMAND_FAILURE;	
-}
-
-// Helper function to get current working directory string
-string get_current_wd_string() {
-    char buffer[PATH_MAX];
-
-	if (getcwd(buffer, PATH_MAX) != NULL) {
-        return string(buffer);
-    } else {
-		perrorSmash("getcwd", "failed");
-		return ""; 
-	}
 }
 
 // previous working directory storage
@@ -130,6 +168,159 @@ int jobs_func() {
 }
 
 int kill_func(int sig_num, int job_id){
+	if (!jobs_list.job_exists(job_id)){
+		string msg = "job id " + to_string(job_id) + " does not exist";
+		perrorSmash("kill", msg.c_str());
+		return COMMAND_FAILURE;
+	}
+	pid_t pid = &jobs_list.jobs_list.find(job_id)->second->job_pid;
+	if (my_system_call(SYS_KILL, pid, sig_num) != 0){
+		perrorSmash("kill", "failed");
+		return COMMAND_FAILURE;
+	}
+	cout << "signal " << sig_num << " was sent to pid " << pid << endl;
+	return COMMAND_SUCCESSFUL;
+}
+
+int fg_func(int job_id){
+	if (job_id == 0) { // only fg was given
+		if (jobs_list.jobs_list.empty()) {
+			perrorSmash("fg", "jobs list is empty");
+			return COMMAND_FAILURE;
+		}
+
+		job_id = jobs_list.get_max_job_id(); // set job_id as max
+	}
+
+	// check if job exists
+	if (!jobs_list.job_exists(job_id)){
+		string msg = "job id " + to_string(job_id) + " does not exist";
+		perrorSmash("fg", msg.c_str());
+		return COMMAND_FAILURE;
+	}
+	// Get job pointer
+	Job* job_to_fg = &jobs_list.jobs_list.find(job_id)->second;
+
+	// Get job data
+	pid_t pid = job_to_fg->job_pid;
+	string cmd_line = job_to_fg->cmd_string;
+	int job_state = job_to_fg->job_state;
+
+	// print the job
+	cout << "[" << job_id << "] " << cmd_line << endl;
+
+	// send SIGCONT if job is stopped
+	if (job_state == STOPPED){
+		if (my_system_call(SYS_KILL, pid, SIGCONT) == -1){
+			perrorSmash("kill", "failed");
+			return COMMAND_FAILURE;
+		}
+	}
+
+	// update foreground process
+	fg_process = pid;
+
+	// remove job from jobs list
+	jobs_list.rem_job(job_id);
+
+	// wait for new fg to finish
+	if (my_system_call(SYS_WAITPID, pid, NULL, WUNTRACED) == -1){
+		perrorSmash("waitpid", "failed");
+		return COMMAND_FAILURE;
+	}
+
+	 // considering smash calls fg, after new fg process finish the new fg process
+	 // will be smash
+	fg_process = getpid();
+
+	return COMMAND_SUCCESSFUL;
+}
+
+int bg_func(int job_id){
+	if (job_id == 0){ // only bg without argument
+		
+		Job* max_stopped_job = nullptr;
+
+		// check if there is a stopped job, if so set job_id to it
+		for (auto it = jobs_list.jobs_list.rbegin(); 
+				it != jobs_list.jobs_list.rend(); ++it){
+
+			if (it->second.job_state == STOPPED){
+				max_stopped_job = &it->second;
+				job_id = it->first; // getting job id by key of the map
+				break;
+			}
+		}
+
+		if (max_stopped_job == nullptr){
+			perrorSmash("bg", "there are no stopped jobs to resume");
+			return COMMAND_FAILURE;
+		}
+	}
+	
+	// Check if job exists
+	if (!jobs_list.job_exist(job_id)) {
+		string msg = "job id " + to_string(job_id) + " does not exist";
+		perrorSmash("bg", msg.c_str());
+		return COMMAND_FAILURE;
+	}
+	
+	Job* job_to_cont = &jobs_list.jobs_list.find(job_id)->second;
+
+	// Check if job is stopped
+	if (job_to_cont->job_state != STOPPED){
+		string msg = "job id " + to_string(job_id) + " is already in background";
+		perrorSmash("bg", msg.c_str());
+		return COMMAND_FAILURE;
+	}
+
+	cout << job_to_cont->cmd_string << " : " << job_to_cont->job_pid << endl;
+
+	if (my_system_call(SYS_KILL, job_to_cont->job_pid, SIGCONT) == -1){
+		perrorSmash("kill", "failed");
+		return COMMAND_FAILURE;
+	}
+
+	jobs_list.resume_job(job_to_cont->job_id);
+	return COMMAND_SUCCESSFUL;
+}
+
+int quit_func(bool kill){
+	if (kill){
+		for (auto const& [job_id, job] : jobs_list.jobs_list){
+			// Get job data
+			pid_t pid = job.job_pid;
+			string cmd_str = job.cmd_string;
+
+			// Send SIGTERM
+			if (my_system_call(SYS_KILL, pid, SIGTERM) == 0){
+				cout << "[" << job_id << "]" << cmd_str << " - sending SIGTERM... " << flush;
+			} else{
+				perrorSmash("kill", "failed");
+				return COMMAND_FAILURE;
+			}
+			
+			// Sleep for 5 sec and check if job was termninated
+			sleep(5);
+			int status;
+			pid_t wait_res = my_system_call(SYS_WAITPID, pid, &status, WNOHANG);
+			if (wait_res > 0){
+				cout << "done " << endl; 
+			} else if (wait_res > 0){
+				if (my_system_call(SYS_KILL, pid, SIGKILL) == 0){
+					cout << "sending SIGKILL... done" << endl;
+				} else {
+					perrorSmash("kill", "failed");
+					return COMMAND_FAILURE;
+				}
+			} else {
+				perrorSmash("waitpid", "failed");
+				return COMMAND_FAILURE;
+			}
+		}
+	}
+
+	exit(0);
 	return COMMAND_SUCCESSFUL;
 }
 
@@ -218,3 +409,24 @@ int diff_func(const string path1, const string path2) {
 	return result;
 }
 
+// ------------- Helper Functions ----------- //
+
+// Checks if a string is a number (for argument checking)
+bool is_number(const string& str){
+	if (str.empty()) return false;
+	for (char const &c : str){
+		if (isdigit(c) == 0) return false;
+	}
+	return true;
+}
+
+string get_current_wd_string() {
+    char buffer[PATH_MAX];
+
+	if (getcwd(buffer, PATH_MAX) != NULL) {
+        return string(buffer);
+    } else {
+		perrorSmash("getcwd", "failed");
+		return ""; 
+	}
+}
