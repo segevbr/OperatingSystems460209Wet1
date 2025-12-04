@@ -1,5 +1,7 @@
 #include "commands.h"
 
+extern Jobs_list jobs_list;
+
 // ------- Built-in commands wrappers ------ //
 int showpid(const vector<string> &args) {
 	if (args.size() != 1) {
@@ -173,7 +175,9 @@ int kill_func(int sig_num, int job_id){
 		perrorSmash("kill", msg.c_str());
 		return COMMAND_FAILURE;
 	}
-	pid_t pid = &jobs_list.jobs_list.find(job_id)->second->job_pid;
+
+	pid_t pid = jobs_list.jobs_list.at(job_id).job_pid;
+
 	if (my_system_call(SYS_KILL, pid, sig_num) != 0){
 		perrorSmash("kill", "failed");
 		return COMMAND_FAILURE;
@@ -259,7 +263,7 @@ int bg_func(int job_id){
 	}
 	
 	// Check if job exists
-	if (!jobs_list.job_exist(job_id)) {
+	if (!jobs_list.job_exists(job_id)) {
 		string msg = "job id " + to_string(job_id) + " does not exist";
 		perrorSmash("bg", msg.c_str());
 		return COMMAND_FAILURE;
@@ -287,8 +291,10 @@ int bg_func(int job_id){
 
 int quit_func(bool kill){
 	if (kill){
-		for (auto const& [job_id, job] : jobs_list.jobs_list){
+		for (auto const& it : jobs_list.jobs_list){
 			// Get job data
+			int job_id = it.first; // jobs_list map key (first) is job_id
+			Job job = it.second; 
 			pid_t pid = job.job_pid;
 			string cmd_str = job.cmd_string;
 

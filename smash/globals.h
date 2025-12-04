@@ -2,8 +2,8 @@
 	#define GLOBALS_H
 
 	#include <cstdio>
+	#include <unistd.h>
 
-	extern Jobs_list jobs_list;
 	extern pid_t fg_process;
 	extern pid_t smash_pid;
 

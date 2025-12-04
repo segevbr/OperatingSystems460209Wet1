@@ -40,7 +40,7 @@ class Job{
         int add_job(const vector<string> args, pid_t son_pid);
         int rem_job(int job_id);
         int stop_job(int job_id);
-        int res_job(int job_id);
+        int resume_job(int job_id);
         int print_jobs();
         // Helper functions
         int get_min_job_id();
