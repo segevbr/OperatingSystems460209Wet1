@@ -43,8 +43,7 @@ unordered_map<string, CmdHandler> commandTable = { //todo change for the right c
         {"fg",      fg},
         {"bg",      bg},
         {"quit",    quit},
-        {"diff",    diff},
-
+        {"diff",    diff}
 };
 
 int bigParser(char *line);
@@ -58,7 +57,6 @@ void run_external_command(vector<string> &commands, bool is_bg);
 void add_string_to_vector(vector<string> &commands, char *start, char *end);
 
 int perform_right_command(vector<string> &command, bool is_bg);
-
 
 /*=============================================================================
 * main function
