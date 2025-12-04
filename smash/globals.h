@@ -1,12 +1,16 @@
-#ifndef GLOBALS_H
-#define GLOBALS_H
+	#ifndef GLOBALS_H
+	#define GLOBALS_H
 
-#include <cstdio>
+	#include <cstdio>
+	#include <unistd.h>
 
-enum Cmd_err {
-	COMMAND_SUCCESSFUL,
-	COMMAND_FAILURE
-};
+	extern pid_t fg_process;
+	extern pid_t smash_pid;
 
-void perrorSmash(const char *cmd, const char *msg);
-#endif
+	enum Cmd_err {
+		COMMAND_SUCCESSFUL,
+		COMMAND_FAILURE
+	};
+
+	void perrorSmash(const char *cmd, const char *msg);
+	#endif

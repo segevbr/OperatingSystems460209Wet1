@@ -40,12 +40,11 @@ unordered_map<string, CmdHandler> commandTable = { //todo change for the right c
         {"pwd",     pwd},
         {"cd",      cd},
         {"jobs",    jobs},
-      //  {"kill",    kill},
-       // {"fg",      fg},
-      //  {"bg",      bg},
-      //  {"quit",    quit},
-        {"diff",    diff},
-
+        {"kill",    kill},
+        {"fg",      fg},
+        {"bg",      bg},
+        {"quit",    quit},
+        {"diff",    diff}
 };
 
 int bigParser(char *line);
@@ -60,11 +59,11 @@ void add_string_to_vector(vector<string> &commands, char *start, char *end);
 
 int perform_right_command(vector<string> &command, bool is_bg);
 
-
 /*=============================================================================
 * main function
 =============================================================================*/
 int main(int argc, char *argv[]) {
+    fg_process = smash_pid; // set smash as foreground process at the start
     char _cmd[CMD_LENGTH_MAX];
     while (1) {
         printf("smash > ");
