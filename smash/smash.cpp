@@ -25,6 +25,8 @@
 * classes/structs declarations
 =============================================================================*/
 Jobs_list jobs_list;
+pid_t fg_process;
+pid_t smash_pid = getpid();
 /*=============================================================================
 * global variables & data structures
 =============================================================================*/
@@ -37,10 +39,10 @@ unordered_map<string, CmdHandler> commandTable = { //todo change for the right c
         {"pwd",     pwd},
         {"cd",      cd},
         {"jobs",    jobs},
-      //  {"kill",    kill},
-       // {"fg",      fg},
-      //  {"bg",      bg},
-      //  {"quit",    quit},
+        {"kill",    kill},
+        {"fg",      fg},
+        {"bg",      bg},
+        {"quit",    quit},
         {"diff",    diff},
 
 };
@@ -62,6 +64,7 @@ int perform_right_command(vector<string> &command, bool is_bg);
 * main function
 =============================================================================*/
 int main(int argc, char *argv[]) {
+    fg_process = smash_pid; // set smash as foreground process at the start
     char _cmd[CMD_LENGTH_MAX];
     while (1) {
         printf("smash > ");

@@ -4,7 +4,7 @@
 // Adding job to list given the cmd and job pid (which should be son's pid)
 int Jobs_list::add_job(const vector<string> args, pid_t son_pid){
     if (this->jobs_list.size() < MAX_JOBS){
-        string cmd_str = get_command_string(args);
+        string cmd_str = this->get_command_string(args);
         Job new_job = Job(cmd_str, son_pid);
         if (!args[0].empty()) new_job.cmd = args.at(0); 
         new_job.job_id = get_min_job_id();
@@ -68,6 +68,7 @@ int Jobs_list::get_max_job_id(){
         if (job_exists(id)) return id; // return the fisrt id from end which isn't in
                                        // the list
     }
+    return 1;
 }
 
 // Return true if job exists, otherwise false
@@ -98,9 +99,9 @@ int Jobs_list::job_runtime(int job_id){
 }
 
 // Helper function to build original command string from string cmd 
-string get_command_string(const vector<string> args){
+string Jobs_list::get_command_string(const vector<string> args){
 	string cmd_string = "";
-    for (int i = 0; i < args.size(); i++){
+    for (int i = 0; i < int(args.size()); i++){
         cmd_string += args[i] + " ";
     }
     if (!cmd_string.empty()) cmd_string.pop_back(); // delete last " "
