@@ -34,7 +34,7 @@ int Jobs_list::stop_job(int job_id){
 }
 
 // Update job state to background
-int Jobs_list::res_job(int job_id){
+int Jobs_list::resume_job(int job_id){
     if (job_exists(job_id)){
         this->jobs_list.at(job_id).job_state = BG;
         return COMMAND_SUCCESSFUL;

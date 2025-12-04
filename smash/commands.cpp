@@ -70,6 +70,23 @@ int bg(const vector<string> &args) {
 	return COMMAND_FAILURE;
 }
 int quit(const vector<string> &args){
+	if (args.empty()) return COMMAND_FAILURE;
+	if (args.size() > 2) {
+		perrorSmash("quit", "expected 0 or 1 arguments");
+		return COMMAND_FAILURE;
+	}
+	if (args.size() == 1){ // no kill argument
+		return quit_func(false);
+	}
+	if (args.size() == 2){
+		string killArg = args[1];
+		if (strncmp(killArg.c_str(),"kill", 4) == 0){
+			return quit_func(true);
+		} else {
+			perrorSmash("quit", "unexpected arguments");
+			return COMMAND_FAILURE;
+		}
+	}
 	return COMMAND_SUCCESSFUL;
 }
 int diff(const vector<string> &args){
@@ -264,19 +281,48 @@ int bg_func(int job_id){
 		return COMMAND_FAILURE;
 	}
 
-	job_to_cont->job_state = BG;
+	jobs_list.resume_job(job_to_cont->job_id);
 	return COMMAND_SUCCESSFUL;
 }
 
-// int quit_func(bool kill){
-// 	if (kill){
-// 		for (auto it : jobs_list.jobs_list){
-// 			Job* curr_job = it->second;
-// 			int job_id = curr_job->job_id;
-// 			string cmd_str = curr_job->cmd_string;
-// 		}
-// 	}
-// }
+int quit_func(bool kill){
+	if (kill){
+		for (auto const& [job_id, job] : jobs_list.jobs_list){
+			// Get job data
+			pid_t pid = job.job_pid;
+			string cmd_str = job.cmd_string;
+
+			// Send SIGTERM
+			if (my_system_call(SYS_KILL, pid, SIGTERM) == 0){
+				cout << "[" << job_id << "]" << cmd_str << " - sending SIGTERM... " << flush;
+			} else{
+				perrorSmash("kill", "failed");
+				return COMMAND_FAILURE;
+			}
+			
+			// Sleep for 5 sec and check if job was termninated
+			sleep(5);
+			int status;
+			pid_t wait_res = my_system_call(SYS_WAITPID, pid, &status, WNOHANG);
+			if (wait_res > 0){
+				cout << "done " << endl; 
+			} else if (wait_res > 0){
+				if (my_system_call(SYS_KILL, pid, SIGKILL) == 0){
+					cout << "sending SIGKILL... done" << endl;
+				} else {
+					perrorSmash("kill", "failed");
+					return COMMAND_FAILURE;
+				}
+			} else {
+				perrorSmash("waitpid", "failed");
+				return COMMAND_FAILURE;
+			}
+		}
+	}
+
+	exit(0);
+	return COMMAND_SUCCESSFUL;
+}
 
 int diff_func(const string path1, const string path2) {
 	int fd1 = -1;
