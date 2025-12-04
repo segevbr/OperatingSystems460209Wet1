@@ -33,7 +33,8 @@ class Job{
         public:
         map<int, Job> jobs_list;
         Jobs_list(){}; // C'tor
-        
+
+        void garbage_collector();
         // Operations on jobs list
         int add_job(const string cmd, pid_t son_pid);
         int rem_job(int job_id);
@@ -45,6 +46,7 @@ class Job{
         bool job_exists(int job_id);
         int print_job(int job_id);
         int job_runtime(int job_id);
+
 };
 
 

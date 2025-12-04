@@ -15,6 +15,7 @@
 #include <ostream>
 #include <unistd.h>
 #include <unordered_map>
+#include "jobs.h"
 
 
 #define SUCCESS 1
@@ -25,6 +26,8 @@
 * classes/structs declarations
 =============================================================================*/
 Jobs_list jobs_list;
+pid_t fg_process;
+pid_t smash_pid = getpid();
 /*=============================================================================
 * global variables & data structures
 =============================================================================*/
@@ -142,6 +145,7 @@ int smallParser(string cmd_stg) {
 }
 
 int run_command(vector<string> &command) {
+    jobs_list.garbage_collector();
     bool isBg = command.back() == "&";
     if (isBg) {
         command.pop_back();
