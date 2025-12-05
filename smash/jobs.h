@@ -49,7 +49,7 @@ class Job{
         int print_job(int job_id);
         int job_runtime(int job_id);
         int get_job_id_from_pid(pid_t job_pid);
-        string get_command_string(const vector<string> args);
+
 };
 
 

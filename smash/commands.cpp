@@ -1,6 +1,7 @@
 #include "commands.h"
 
 extern Jobs_list jobs_list;
+extern string fg_command_str;
 
 // ------- Built-in commands wrappers ------ //
 int showpid(const vector<string> &args) {
@@ -223,7 +224,7 @@ int fg_func(int job_id){
 
 	// update foreground process
 	fg_process = pid;
-
+	fg_command_str = job_to_fg->cmd_string;
 	// remove job from jobs list
 	jobs_list.rem_job(job_id);
 
@@ -235,7 +236,7 @@ int fg_func(int job_id){
 
 	 // considering smash calls fg, after new fg process finish the new fg process
 	 // will be smash
-	fg_process = getpid();
+	fg_process = smash_pid;
 
 	return COMMAND_SUCCESSFUL;
 }

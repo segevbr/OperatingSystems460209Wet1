@@ -27,6 +27,7 @@
 Jobs_list jobs_list;
 pid_t fg_process;
 pid_t smash_pid = getpid();
+string fg_command_str = "";
 /*=============================================================================
 * global variables & data structures
 =============================================================================*/
@@ -59,6 +60,7 @@ void add_string_to_vector(vector<string> &commands, char *start, char *end);
 
 int perform_right_command(vector<string> &command, bool is_bg);
 
+void garbage_collector();
 
 /*=============================================================================
 * main function
@@ -74,21 +76,23 @@ int main(int argc, char *argv[]) {
     sigaction(SIGINT, &sa_int, NULL);
 
     // SIGTSTP (CTRL+Z)
-    struct sigaction sa_tstp;
-    sa_tstp.sa_handler = &catch_ctrl_z;
-    sa_tstp.sa_flags = 0;
-    sigfillset(&sa_tstp.sa_mask);
-    sigaction(SIGTSTP, &sa_tstp, NULL);
-
-    // SIGCHLD (bg job finished)
+    struct sigaction sa_stp;
+    sa_stp.sa_handler = &catch_ctrl_z;
+    sa_stp.sa_flags = 0;
+    sigfillset(&sa_stp.sa_mask);
+    sigaction(SIGTSTP, &sa_stp, NULL);
+    
+    // SIGCHLD (Background job finished)
     struct sigaction sa_chld;
     sa_chld.sa_handler = &catch_sigchld;
     sa_chld.sa_flags = SA_RESTART; 
     sigfillset(&sa_chld.sa_mask);
     sigaction(SIGCHLD, &sa_chld, NULL);
     
+
     char _cmd[CMD_LENGTH_MAX];
     while (1) {
+        // garbage_collector();
         printf("smash > ");
         if (fgets(_line, CMD_LENGTH_MAX, stdin) == NULL) {
             if (ferror(stdin) && errno == EINTR) {
@@ -197,11 +201,10 @@ int run_command(vector<string> &command) {
         }
         if (pid > 0) {
             jobs_list.add_job(command, pid);
-
-            
         }
 
     } else {
+        fg_command_str = join_args(command);
         perform_right_command(command, isBg);
     }
     return success;
@@ -211,6 +214,7 @@ int perform_right_command(vector<string> &command, bool is_bg) {
     string command_name = command[0];
     auto table_command = commandTable.find(command_name);
     CmdHandler handler = table_command->second;
+    
     return handler(command);
 }
 
@@ -241,12 +245,40 @@ void run_external_command(vector<string> &command, bool is_bg) {
     }
     if (pid > 0) { //parent process
         if (!is_bg) {
-            my_system_call(SYS_WAITPID, pid, &success, 0);
-        } else {
+            // External command is now the fg command
+            fg_process = pid;
+            fg_command_str = join_args(command);
+            // Smash waits for command to finish
+            pid_t wait_res = my_system_call(SYS_WAITPID, pid, &success, WUNTRACED);
 
+            if (wait_res == -1){
+                perrorSmash("waitpid", "failed");
+            } 
+            // Sets fg_process as himself again
+            fg_process = smash_pid;
         }
+        // command supposed to run in background so add it to list
+        if (is_bg) jobs_list.add_job(command, pid); 
     }
 }
 
+// Clears job in case they are finished
+void garbage_collector() {
+    int status;
+    for (auto it = jobs_list.jobs_list.begin(); it != jobs_list.jobs_list.end();){
+        if (it->second.job_state == BG) {
+            pid_t pid = it->second.job_pid;
+            pid_t code = my_system_call(SYS_WAITPID, pid, &status, WHOHANG);
 
+            if (code == -1){
+                perrorSmash("waitpid", "failed");
+                ++it;
+            } else if (code > 0){
+                it = jobs_list.jobs_list.erase(it);
+                continue;
+            }
+        }
+        ++it;
+    }
+}
 

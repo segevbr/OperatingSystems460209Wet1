@@ -3,7 +3,11 @@
 
 #include <cstdio>
 #include <unistd.h>
+#include <vector>
+#include <iostream>
+#include <cstring>
 
+using namespace std;
 
 #ifndef WHOHANG
 #define WHOHANG 1
@@ -22,4 +26,5 @@ enum Cmd_err {
 };
 
 void perrorSmash(const char *cmd, const char *msg);
+string join_args(const vector<string> args);
 #endif
