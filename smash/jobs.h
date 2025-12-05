@@ -48,7 +48,8 @@ class Job{
         bool job_exists(int job_id);
         int print_job(int job_id);
         int job_runtime(int job_id);
-        string get_command_string(const vector<string> args);
+        int get_job_id_from_pid(pid_t job_pid);
+
 };
 
 
