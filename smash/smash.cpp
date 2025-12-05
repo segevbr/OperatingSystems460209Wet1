@@ -65,10 +65,39 @@ int perform_right_command(vector<string> &command, bool is_bg);
 =============================================================================*/
 int main(int argc, char *argv[]) {
     fg_process = smash_pid; // set smash as foreground process at the start
+    
+    // SIGINT (CTRL+C)
+    struct sigaction sa_int;
+    sa_int.sa_handler = &catch_ctrl_c;
+    sa_int.sa_flags = 0;
+    sigfillset(&sa_int.sa_mask); 
+    sigaction(SIGINT, &sa_int, NULL);
+
+    // SIGTSTP (CTRL+Z)
+    struct sigaction sa_tstp;
+    sa_tstp.sa_handler = &catch_ctrl_z;
+    sa_tstp.sa_flags = 0;
+    sigfillset(&sa_tstp.sa_mask);
+    sigaction(SIGTSTP, &sa_tstp, NULL);
+
+    // SIGCHLD (bg job finished)
+    struct sigaction sa_chld;
+    sa_chld.sa_handler = &catch_sigchld;
+    sa_chld.sa_flags = SA_RESTART; 
+    sigfillset(&sa_chld.sa_mask);
+    sigaction(SIGCHLD, &sa_chld, NULL);
+    
     char _cmd[CMD_LENGTH_MAX];
     while (1) {
         printf("smash > ");
-        fgets(_line, CMD_LENGTH_MAX, stdin);
+        if (fgets(_line, CMD_LENGTH_MAX, stdin) == NULL) {
+            if (ferror(stdin) && errno == EINTR) {
+                clearerr(stdin); // Clear the error so we can read again
+                continue; // Go back to start of while(1) to reprint "smash > "
+            }
+            // Check for EOF or Error
+            break; 
+        }
         strcpy(_cmd, _line);
         //execute command
         bigParser(_cmd);
@@ -167,7 +196,9 @@ int run_command(vector<string> &command) {
             perform_right_command(command, isBg);
         }
         if (pid > 0) {
-            //todo add to jobs
+            jobs_list.add_job(command, pid);
+
+            
         }
 
     } else {
@@ -211,6 +242,8 @@ void run_external_command(vector<string> &command, bool is_bg) {
     if (pid > 0) { //parent process
         if (!is_bg) {
             my_system_call(SYS_WAITPID, pid, &success, 0);
+        } else {
+
         }
     }
 }

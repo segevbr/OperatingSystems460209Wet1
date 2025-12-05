@@ -107,3 +107,10 @@ string Jobs_list::get_command_string(const vector<string> args){
     if (!cmd_string.empty()) cmd_string.pop_back(); // delete last " "
     return cmd_string;
 }
+
+int Jobs_list::get_job_id_from_pid(pid_t pid){
+    for (auto const &it : jobs_list){
+        if (it.second.job_pid == pid) return it.first; // return job_id if found
+    }
+    return -1; // Didn't find job (doesn't suppose to happen)
+}
