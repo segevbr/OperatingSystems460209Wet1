@@ -1,6 +1,7 @@
 #include "commands.h"
 
 extern Jobs_list jobs_list;
+extern string fg_command_str;
 
 // ------- Built-in commands wrappers ------ //
 int showpid(const vector<string> &args) {
@@ -166,6 +167,7 @@ int cd_func(const string path) {
 }
 
 int jobs_func() {
+	jobs_list.remove_finished_jobs(); // clean before printing list
 	return jobs_list.print_jobs();
 }
 
@@ -223,7 +225,7 @@ int fg_func(int job_id){
 
 	// update foreground process
 	fg_process = pid;
-
+	fg_command_str = job_to_fg->cmd_string;
 	// remove job from jobs list
 	jobs_list.rem_job(job_id);
 
@@ -235,7 +237,7 @@ int fg_func(int job_id){
 
 	 // considering smash calls fg, after new fg process finish the new fg process
 	 // will be smash
-	fg_process = getpid();
+	fg_process = smash_pid;
 
 	return COMMAND_SUCCESSFUL;
 }
@@ -298,36 +300,50 @@ int quit_func(bool kill){
 			pid_t pid = job.job_pid;
 			string cmd_str = job.cmd_string;
 
+			// Print sigterm msg
+			cout << "[" << job_id << "] " << cmd_str << " - sending SIGTERM... " 
+																			<< flush;
 			// Send SIGTERM
-			if (my_system_call(SYS_KILL, pid, SIGTERM) == 0){
-				cout << "[" << job_id << "]" << cmd_str << " - sending SIGTERM... " << flush;
-			} else{
+			if (my_system_call(SYS_KILL, pid, SIGTERM) == -1){
 				perrorSmash("kill", "failed");
-				return COMMAND_FAILURE;
 			}
-			
-			// Sleep for 5 sec and check if job was termninated
-			sleep(5);
-			int status;
-			pid_t wait_res = my_system_call(SYS_WAITPID, pid, &status, WNOHANG);
-			if (wait_res > 0){
-				cout << "done " << endl; 
-			} else if (wait_res > 0){
-				if (my_system_call(SYS_KILL, pid, SIGKILL) == 0){
-					cout << "sending SIGKILL... done" << endl;
-				} else {
+
+			// allow job to wake up and end without violently SIGKILLing it
+			if (job.job_state == STOPPED){
+				if (my_system_call(SYS_KILL, pid, SIGCONT) == -1){
 					perrorSmash("kill", "failed");
-					return COMMAND_FAILURE;
 				}
-			} else {
-				perrorSmash("waitpid", "failed");
-				return COMMAND_FAILURE;
+			}
+			// 5 sec timer
+			bool is_killed = false;
+			for (int i = 0; i < 5; i++) {
+				sleep(1); // sleep 1 sec
+
+				int status;
+				pid_t wait_res = my_system_call(SYS_WAITPID, pid, &status, WHOHANG);
+				if (wait_res > 0){ // process exited
+					is_killed = true;
+					break;
+				} else if (wait_res == -1){ // process no longer exists 
+					is_killed = true; // for us it's considered killed
+					break;
+				}
+				// if the process is still running we continue to wait
+			}
+
+			if (is_killed){
+				cout << "done" << endl;
+			} else { // process still alive after 5 sec
+				cout << "sending SIGKILL... " << flush;
+				if (my_system_call(SYS_KILL, pid, SIGKILL) == -1){
+					perrorSmash("kill", "failed");
+				}
+				cout << "done" << endl;
 			}
 		}
 	}
-
 	exit(0);
-	return COMMAND_SUCCESSFUL;
+	return COMMAND_SUCCESSFUL; // won't reach but still need a return value
 }
 
 int diff_func(const string path1, const string path2) {

@@ -3,8 +3,9 @@
 // --------- Jobs list functions ---------
 // Adding job to list given the cmd and job pid (which should be son's pid)
 int Jobs_list::add_job(const vector<string> args, pid_t son_pid){
+    remove_finished_jobs(); // clean before adding job
     if (this->jobs_list.size() < MAX_JOBS){
-        string cmd_str = this->get_command_string(args);
+        string cmd_str = join_args(args);
         Job new_job = Job(cmd_str, son_pid);
         if (!args[0].empty()) new_job.cmd = args.at(0); 
         new_job.job_id = get_min_job_id();
@@ -98,12 +99,24 @@ int Jobs_list::job_runtime(int job_id){
     return (int)difftime(end, start);
 }
 
-// Helper function to build original command string from string cmd 
-string Jobs_list::get_command_string(const vector<string> args){
-	string cmd_string = "";
-    for (int i = 0; i < int(args.size()); i++){
-        cmd_string += args[i] + " ";
+int Jobs_list::get_job_id_from_pid(pid_t pid){
+    for (auto const &it : jobs_list){
+        if (it.second.job_pid == pid) return it.first; // return job_id if found
     }
-    if (!cmd_string.empty()) cmd_string.pop_back(); // delete last " "
-    return cmd_string;
+    return -1; // Didn't find job (doesn't suppose to happen)
+}
+
+void Jobs_list::remove_finished_jobs() {
+    int status;
+
+    for (auto it = jobs_list.begin(); it != jobs_list.end();) {
+        pid_t pid = it->second.job_pid;
+        pid_t res = my_system_call(SYS_WAITPID, pid, &status, WHOHANG);
+
+        // if process waas ripped or doesn't exist anymore
+        if (res > 0 || res == -1){
+            it = jobs_list.erase(it); // returns it to the next elem
+        } else it++;
+    
+    }
 }
