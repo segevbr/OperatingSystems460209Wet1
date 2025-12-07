@@ -61,7 +61,7 @@ int smallParser(string cmd_stg);
 
 int run_command(vector<string> &commands);
 
-void run_external_command(vector<string> &commands, bool is_bg);
+int run_external_command(vector<string> &commands, bool is_bg);
 
 void add_string_to_vector(vector<string> &commands, char *start, char *end);
 
@@ -182,11 +182,11 @@ int smallParser(string cmd_stg) {
         args.push_back(arg);
     }
 
-    run_command(args);
+    int result = run_command(args);
 
     free(mod_str);
 
-    return 0;
+    return result;
 }
 
 int run_command(vector<string> &command) {
@@ -204,7 +204,7 @@ int run_command(vector<string> &command) {
 
         auto alias_command = aliasTable.find(command_name);
         if (alias_command == aliasTable.end()) {// command doesn't exist - external
-            run_external_command(command, isBg);
+            success = run_external_command(command, isBg);
         } else { //command is alias
             char *command_of_alias = alias_command->second;
             return bigParser(command_of_alias);
@@ -239,7 +239,7 @@ int perform_right_command(vector<string> &command, bool is_bg) {
     return handler(command);
 }
 
-void run_external_command(vector<string> &command, bool is_bg) {
+int run_external_command(vector<string> &command, bool is_bg) {
     //convert  to char*
     vector<char *> execArgs;
     for (int i = 0; i < (int) command.size(); i++) {
@@ -250,10 +250,12 @@ void run_external_command(vector<string> &command, bool is_bg) {
     //fork
     int success = -1;
     pid_t pid = (pid_t) my_system_call(SYS_FORK);
+
     if (pid < 0) { //if failed
         perrorSmash("fork", "failed");
         exit(1);
     }
+
     if (pid == 0) { //child process
         setpgrp();
         my_system_call(SYS_EXECVP, execArgs[0], execArgs.data());
@@ -265,24 +267,40 @@ void run_external_command(vector<string> &command, bool is_bg) {
         }
         exit(1);
     }
+
     if (pid > 0) { //parent process
         if (!is_bg) {
             // External command is now the fg command
             fg_process = pid;
             fg_command_str = join_args(command);
+
             // Smash waits for command to finish
-            pid_t wait_res = my_system_call(SYS_WAITPID, pid, &success, WUNTRACED);
+            int status;
+            pid_t wait_res = my_system_call(SYS_WAITPID, pid, &status, WUNTRACED);
 
             if (wait_res == -1) {
-                if (errno == EINTR) errno = 0; // clear errno
+                if (errno == EINTR){
+                    errno = 0; // clear errno
+                }
                 else perrorSmash("waitpid", "failed");
+                return COMMAND_FAILURE;
             }
+
+            if(WIFEXITED(status)){
+                int exit_status = WEXITSTATUS(status);
+                success = (exit_status == 0) ? COMMAND_SUCCESSFUL : COMMAND_FAILURE;
+            } else {
+                success = COMMAND_FAILURE;
+            }
+
             // Sets fg_process as himself again
             fg_process = smash_pid;
         }
         // command supposed to run in background so add it to list
         if (is_bg) jobs_list.add_job(command, pid);
     }
+
+    return success;
 }
 
 int alias(const vector<string> &args) {
@@ -312,13 +330,20 @@ int alias(const vector<string> &args) {
     command_string_to_alias = command_string_to_alias.substr(1, command_string_to_alias.size() - 2); //delete ""
 
     char *command_char_kochavit_to_alias = strdup(command_string_to_alias.c_str());
-    aliasTable[command_name_to_alias] = command_char_kochavit_to_alias;
+
+    auto alias_command = aliasTable.find(command_name_to_alias);
+    if (alias_command == aliasTable.end()) {// if command already alias
+        aliasTable[command_name_to_alias] = command_char_kochavit_to_alias;
+    } else {
+        alias_command->second = command_char_kochavit_to_alias;
+    }
+
     return COMMAND_SUCCESSFUL;
 }
 
 int unalias(const vector<string> &args) {
 
-    if(args.size() < 2){
+    if (args.size() != 2) {
         perrorSmash("unalias", "invalid arguments");
         return COMMAND_FAILURE;
     }
