@@ -18,7 +18,7 @@ void catch_ctrl_c(int signum) {
             cout << "smash: process " << fg_process << " was killed" << endl;
             fg_process = smash_pid;
         } else {
-            perrorSmash("kill", "faile");
+            perrorSmash("kill", "failed");
         }
     }
 }
@@ -46,17 +46,17 @@ void catch_ctrl_z(int signum) {
 }
 
 
-void catch_sigchld(int signum) {
-    int status;
-    pid_t pid;
+// void catch_sigchld(int signum) {
+//     int status;
+//     pid_t pid;
 
-    // -1 tells waitpid to wait for any child process
-    while ((pid = my_system_call(SYS_WAITPID, -1, &status, WNOHANG)) > 0){
-        // Only attempt to remove the job if its PID was found.
-        int job_id = jobs_list.get_job_id_from_pid(pid);
+//     // -1 tells waitpid to wait for any child process
+//     while ((pid = my_system_call(SYS_WAITPID, -1, &status, WNOHANG)) > 0){
+//         // Only attempt to remove the job if its PID was found.
+//         int job_id = jobs_list.get_job_id_from_pid(pid);
         
-        if (job_id != -1) {
-            jobs_list.rem_job(job_id);
-        }
-    }
-}
+//         if (job_id != -1) {
+//             jobs_list.rem_job(job_id);
+//         }
+//     }
+// }
