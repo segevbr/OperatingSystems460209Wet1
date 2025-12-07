@@ -47,7 +47,7 @@ int Jobs_list::resume_job(int job_id) {
 // Print all jobs in jobs list in order of job_id
 int Jobs_list::print_jobs() {
     if (jobs_list.empty()) return COMMAND_FAILURE;
-    for (int id = 1; id <= MAX_JOBS; id++) {
+    for (int id = 0; id < MAX_JOBS; id++) {
         if (!job_exists(id)) continue;
         print_job(id);
     }
@@ -56,8 +56,8 @@ int Jobs_list::print_jobs() {
 
 // Return the minimal possible job_id which can be given to a job
 int Jobs_list::get_min_job_id() {
-    if (this->jobs_list.empty()) return 1;
-    for (int id = 1; id <= MAX_JOBS; id++) {
+    if (this->jobs_list.empty()) return 0;
+    for (int id = 0; id < MAX_JOBS; id++) {
         if (!job_exists(id)) return id; // return the first id who isn't in the list
     }
     return 0;
@@ -65,12 +65,12 @@ int Jobs_list::get_min_job_id() {
 
 // Return the maximum existing job id
 int Jobs_list::get_max_job_id() {
-    if (this->jobs_list.empty()) return 1;
-    for (int id = MAX_JOBS; id > 0; id--) {
+    if (this->jobs_list.empty()) return 0;
+    for (int id = MAX_JOBS - 1; id >= 0; id--) {
         if (job_exists(id)) return id; // return the fisrt id from end which isn't in
         // the list
     }
-    return 1;
+    return 0;
 }
 
 // Return true if job exists, otherwise false
@@ -109,7 +109,7 @@ int Jobs_list::get_job_id_from_pid(pid_t pid) {
 
 void Jobs_list::garbage_collector() {
     int status = 0;
-    for (int id = 1; id <= MAX_JOBS; ++id) {
+    for (int id = 0; id < MAX_JOBS; ++id) {
         if (job_exists(id)) {
             auto job = this->jobs_list.at(id);
             if (job.job_state == BG) {

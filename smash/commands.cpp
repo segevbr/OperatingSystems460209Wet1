@@ -42,7 +42,7 @@ int jobs(const vector<string> &args) {
 int kill(const vector<string> &args) {
     if (args.empty()) return COMMAND_FAILURE;
     else if (args.size() != 3 || !is_number(args[1]) || !is_number(args[2])) {
-        perrorSmash("kill", "invalid_arguments");
+        perrorSmash("kill", "invalid arguments");
         return COMMAND_FAILURE;
     }
     int signum = stoi(args[1]);
