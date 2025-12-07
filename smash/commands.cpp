@@ -23,7 +23,7 @@ int pwd(const vector<string> &args) {
 int cd(const vector<string> &args) {
     if (args.empty()) return COMMAND_FAILURE;
     if (args.size() != 2 || args[1].empty()) {
-        perrorSmash("cd", "expected 1 argument");
+        perrorSmash("cd", "expected 1 arguments");
         return COMMAND_FAILURE;
     }
     string path = args[1];
