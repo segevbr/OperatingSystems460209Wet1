@@ -21,8 +21,8 @@ extern pid_t fg_process;
 extern pid_t smash_pid;
 
 enum Cmd_err {
-	COMMAND_SUCCESSFUL,
-	COMMAND_FAILURE
+	COMMAND_SUCCESSFUL = 0,
+	COMMAND_FAILURE = 1
 };
 
 void perrorSmash(const char *cmd, const char *msg);

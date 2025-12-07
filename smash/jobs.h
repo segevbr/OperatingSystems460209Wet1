@@ -28,7 +28,7 @@ class Job{
     
     // C'tor
     Job(const string &cmd, pid_t job_pid) : 
-        cmd_string(cmd), job_pid(job_pid), 
+        cmd_string(cmd), job_pid(job_pid),
         start_time(time(NULL)), job_state(BG){};
     };
     
@@ -36,7 +36,8 @@ class Job{
         public:
         map<int, Job> jobs_list;
         Jobs_list(){}; // C'tor
-        
+
+        void garbage_collector();
         // Operations on jobs list
         int add_job(const vector<string> args, pid_t son_pid);
         int rem_job(int job_id);
@@ -50,7 +51,6 @@ class Job{
         int print_job(int job_id);
         int job_runtime(int job_id);
         int get_job_id_from_pid(pid_t job_pid);
-        void remove_finished_jobs();
 
 };
 
