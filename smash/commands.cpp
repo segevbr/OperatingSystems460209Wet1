@@ -90,7 +90,7 @@ int quit(const vector<string> &args) {
     }
     if (args.size() == 2) {
         string killArg = args[1];
-        if (strncmp(killArg.c_str(), "kill", 4) == 0) {
+        if (strncmp(killArg.c_str(), "kill", 4) == 0 && killArg.size() == 4) {
             return quit_func(true);
         } else {
             perrorSmash("quit", "unexpected arguments");
