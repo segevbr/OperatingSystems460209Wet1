@@ -175,7 +175,7 @@ int cd_func(const string path) {
 }
 
 int jobs_func() {
-    jobs_list.remove_finished_jobs(); // clean before printing list
+    jobs_list.garbage_collector(); // clean before printing list
     return jobs_list.print_jobs();
 }
 
