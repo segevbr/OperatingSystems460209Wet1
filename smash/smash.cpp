@@ -83,16 +83,15 @@ int main(int argc, char *argv[]) {
     sigaction(SIGTSTP, &sa_stp, NULL);
     
     // SIGCHLD (Background job finished)
-    struct sigaction sa_chld;
-    sa_chld.sa_handler = &catch_sigchld;
-    sa_chld.sa_flags = SA_RESTART; 
-    sigfillset(&sa_chld.sa_mask);
-    sigaction(SIGCHLD, &sa_chld, NULL);
+    // struct sigaction sa_chld;
+    // sa_chld.sa_handler = &catch_sigchld;
+    // sa_chld.sa_flags = SA_RESTART; 
+    // sigfillset(&sa_chld.sa_mask);
+    // sigaction(SIGCHLD, &sa_chld, NULL);
     
 
     char _cmd[CMD_LENGTH_MAX];
     while (1) {
-        // garbage_collector();
         printf("smash > ");
         if (fgets(_line, CMD_LENGTH_MAX, stdin) == NULL) {
             if (ferror(stdin) && errno == EINTR) {
@@ -234,6 +233,7 @@ void run_external_command(vector<string> &command, bool is_bg) {
         exit(1);
     }
     if (pid == 0) { //child process
+        setpgrp();
         my_system_call(SYS_EXECVP, execArgs[0], execArgs.data());
         //if reached here - failed exec
         if (errno == ENOENT) {
@@ -252,8 +252,9 @@ void run_external_command(vector<string> &command, bool is_bg) {
             pid_t wait_res = my_system_call(SYS_WAITPID, pid, &success, WUNTRACED);
 
             if (wait_res == -1){
-                perrorSmash("waitpid", "failed");
-            } 
+                if (errno == EINTR) errno = 0; // clear errno
+                else perrorSmash("waitpid", "failed");
+            }
             // Sets fg_process as himself again
             fg_process = smash_pid;
         }
@@ -263,22 +264,22 @@ void run_external_command(vector<string> &command, bool is_bg) {
 }
 
 // Clears job in case they are finished
-void garbage_collector() {
-    int status;
-    for (auto it = jobs_list.jobs_list.begin(); it != jobs_list.jobs_list.end();){
-        if (it->second.job_state == BG) {
-            pid_t pid = it->second.job_pid;
-            pid_t code = my_system_call(SYS_WAITPID, pid, &status, WHOHANG);
+// void garbage_collector() {
+//     int status;
+//     for (auto it = jobs_list.jobs_list.begin(); it != jobs_list.jobs_list.end();){
+//         if (it->second.job_state == BG) {
+//             pid_t pid = it->second.job_pid;
+//             pid_t code = my_system_call(SYS_WAITPID, pid, &status, WHOHANG);
 
-            if (code == -1){
-                perrorSmash("waitpid", "failed");
-                ++it;
-            } else if (code > 0){
-                it = jobs_list.jobs_list.erase(it);
-                continue;
-            }
-        }
-        ++it;
-    }
-}
+//             if (code == -1){
+//                 perrorSmash("waitpid", "failed");
+//                 ++it;
+//             } else if (code > 0){
+//                 it = jobs_list.jobs_list.erase(it);
+//                 continue;
+//             }
+//         }
+//         ++it;
+//     }
+// }
 
