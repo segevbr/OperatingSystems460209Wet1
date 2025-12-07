@@ -14,6 +14,7 @@
 #include <iostream>
 #include <ostream>
 #include <unistd.h>
+#include <algorithm>
 #include <unordered_map>
 #include "jobs.h"
 #include "globals.h"
@@ -26,6 +27,11 @@ Jobs_list jobs_list;
 pid_t fg_process;
 pid_t smash_pid = getpid();
 string fg_command_str = "";
+
+int alias(const vector<string> &args);
+
+int unalias(const vector<string> &args);
+
 /*=============================================================================
 * global variables & data structures
 =============================================================================*/
@@ -42,8 +48,12 @@ unordered_map<string, CmdHandler> commandTable = {
         {"fg",      fg},
         {"bg",      bg},
         {"quit",    quit},
-        {"diff",    diff}
+        {"diff",    diff},
+        {"alias",   alias},
+        {"unalias", unalias}
 };
+
+unordered_map<string, char *> aliasTable;
 
 int bigParser(char *line);
 
@@ -57,6 +67,7 @@ void add_string_to_vector(vector<string> &commands, char *start, char *end);
 
 int perform_right_command(vector<string> &command, bool is_bg);
 
+void split_by_equal(const string &s, string &left, string &right);
 
 /*=============================================================================
 * main function
@@ -123,6 +134,7 @@ int bigParser(char *line) {
             ptr++;
         }
     }
+
     add_string_to_vector(commands, start, ptr);
 
     int res;
@@ -141,6 +153,8 @@ void add_string_to_vector(vector<string> &commands, char *start, char *end) {
     char *cmd = strndup(start, end - start);
     string str_cmd = cmd;
     commands.push_back(str_cmd);
+
+    free(cmd);
 }
 
 int smallParser(string cmd_stg) {
@@ -186,8 +200,16 @@ int run_command(vector<string> &command) {
     //find the right command
     string command_name = command[0];
     auto table_command = commandTable.find(command_name);
-    if (table_command == commandTable.end()) { // command doesn't exist - external
-        run_external_command(command, isBg);
+    if (table_command == commandTable.end()) { //either command is alias or external
+
+        auto alias_command = aliasTable.find(command_name);
+        if (alias_command == aliasTable.end()) {// command doesn't exist - external
+            run_external_command(command, isBg);
+        } else { //command is alias
+            char *command_of_alias = alias_command->second;
+            return bigParser(command_of_alias);
+        }
+
     } else if (isBg) {
         pid_t pid = (pid_t) my_system_call(SYS_FORK);
         if (pid < 0) { //if failed
@@ -204,7 +226,7 @@ int run_command(vector<string> &command) {
 
     } else {
         fg_command_str = join_args(command);
-        perform_right_command(command, isBg);
+        success = perform_right_command(command, isBg);
     }
     return success;
 }
@@ -261,4 +283,61 @@ void run_external_command(vector<string> &command, bool is_bg) {
         // command supposed to run in background so add it to list
         if (is_bg) jobs_list.add_job(command, pid);
     }
+}
+
+int alias(const vector<string> &args) {
+    //validations
+    if (args.size() < 2 || args[1].find('=') == string::npos) {
+        perrorSmash("alias", "invalid_arguments");
+        return COMMAND_FAILURE;
+    }
+
+    //making it a full string again
+    string command_full;
+    for (size_t i = 1; i < args.size(); ++i) {
+        if (i > 1) {
+            command_full += " ";
+        }
+        command_full += args[i];
+    }
+
+    //dividing the alias command and action
+    string command_name_to_alias;
+    string command_string_to_alias;
+    split_by_equal(command_full, command_name_to_alias, command_string_to_alias);
+    if (command_string_to_alias.front() != '"' || command_string_to_alias.back() != '"') {
+        perrorSmash("alias", "invalid_arguments");
+        return COMMAND_FAILURE;
+    }
+    command_string_to_alias = command_string_to_alias.substr(1, command_string_to_alias.size() - 2); //delete ""
+
+    char *command_char_kochavit_to_alias = strdup(command_string_to_alias.c_str());
+    aliasTable[command_name_to_alias] = command_char_kochavit_to_alias;
+    return COMMAND_SUCCESSFUL;
+}
+
+int unalias(const vector<string> &args) {
+
+    if(args.size() < 2){
+        perrorSmash("unalias", "invalid_arguments");
+        return COMMAND_FAILURE;
+    }
+
+    auto alias_command = aliasTable.find(args[1]);
+    if (alias_command == aliasTable.end()) { //no alias to delete
+        perrorSmash("unalias", "invalid_arguments");
+        return COMMAND_FAILURE;
+    }
+
+    free(alias_command->second);
+    aliasTable.erase(alias_command);
+    return COMMAND_SUCCESSFUL;
+
+}
+
+void split_by_equal(const string &s, string &left, string &right) {
+    size_t pos = s.find('=');
+
+    left = s.substr(0, pos);
+    right = s.substr(pos + 1);
 }
