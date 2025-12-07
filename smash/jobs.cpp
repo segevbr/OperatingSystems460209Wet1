@@ -6,7 +6,7 @@
 int Jobs_list::add_job(const vector<string> args, pid_t son_pid) {
     this->garbage_collector();
     if (this->jobs_list.size() < MAX_JOBS) {
-        string cmd_str = this->get_command_string(args);
+        string cmd_str = join_args(args);
         Job new_job = Job(cmd_str, son_pid);
         if (!args[0].empty()) new_job.cmd = args.at(0);
         new_job.job_id = get_min_job_id();
@@ -57,24 +57,24 @@ int Jobs_list::print_jobs() {
 // Return the minimal possible job_id which can be given to a job
 int Jobs_list::get_min_job_id() {
     if (this->jobs_list.empty()) return 1;
-    for (int id = 1; id <= MAX_JOBS; id++){
+    for (int id = 1; id <= MAX_JOBS; id++) {
         if (!job_exists(id)) return id; // return the first id who isn't in the list
     }
     return 0;
 }
 
 // Return the maximum existing job id
-int Jobs_list::get_max_job_id(){
+int Jobs_list::get_max_job_id() {
     if (this->jobs_list.empty()) return 1;
-    for (int id = MAX_JOBS; id > 0; id--){
+    for (int id = MAX_JOBS; id > 0; id--) {
         if (job_exists(id)) return id; // return the fisrt id from end which isn't in
-                                       // the list
+        // the list
     }
     return 1;
 }
 
-// Return true if job exists, otherwise false todo change to is
-bool Jobs_list::job_exists(int job_id){
+// Return true if job exists, otherwise false
+bool Jobs_list::job_exists(int job_id) {
     if (this->jobs_list.find(job_id) != this->jobs_list.end()) return true;
     return false;
 }
@@ -100,8 +100,8 @@ int Jobs_list::job_runtime(int job_id) {
     return (int) difftime(end, start);
 }
 
-int Jobs_list::get_job_id_from_pid(pid_t pid){
-    for (auto const &it : jobs_list){
+int Jobs_list::get_job_id_from_pid(pid_t pid) {
+    for (auto const &it: jobs_list) {
         if (it.second.job_pid == pid) return it.first; // return job_id if found
     }
     return -1; // Didn't find job (doesn't suppose to happen)

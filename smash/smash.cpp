@@ -16,10 +16,7 @@
 #include <unistd.h>
 #include <unordered_map>
 #include "jobs.h"
-
-
-#define SUCCESS 1
-#define FAIL 0
+#include "globals.h"
 
 #define CMD_LENGTH_MAX 80
 /*=============================================================================
@@ -36,7 +33,7 @@ char _line[CMD_LENGTH_MAX];
 
 typedef int (*CmdHandler)(const vector<string> &args);
 
-unordered_map<string, CmdHandler> commandTable = { //todo change for the right commands when we have their names
+unordered_map<string, CmdHandler> commandTable = {
         {"showpid", showpid},
         {"pwd",     pwd},
         {"cd",      cd},
@@ -81,13 +78,6 @@ int main(int argc, char *argv[]) {
     sigfillset(&sa_stp.sa_mask);
     sigaction(SIGTSTP, &sa_stp, NULL);
 
-    // SIGCHLD (Background job finished)
-    // struct sigaction sa_chld;
-    // sa_chld.sa_handler = &catch_sigchld;
-    // sa_chld.sa_flags = SA_RESTART;
-    // sigfillset(&sa_chld.sa_mask);
-    // sigaction(SIGCHLD, &sa_chld, NULL);
-
 
     char _cmd[CMD_LENGTH_MAX];
     while (1) {
@@ -102,7 +92,10 @@ int main(int argc, char *argv[]) {
         }
         strcpy(_cmd, _line);
         //execute command
-        bigParser(_cmd);
+        int res = bigParser(_cmd);
+        if (res == COMMAND_FAILURE) {
+            continue;
+        }
         //initialize buffers for next command
         _line[0] = '\0';
         _cmd[0] = '\0';
@@ -116,6 +109,8 @@ int bigParser(char *line) {
     // Create pointer token for strtok operation
     char *ptr = line;
     char *start = line;
+
+    bool last_command_success = COMMAND_SUCCESSFUL;
 
     vector<string> commands;
 
@@ -132,7 +127,12 @@ int bigParser(char *line) {
 
     int res;
     for (size_t i = 0; i < commands.size(); i++) {
-        res = smallParser(commands[i]);
+        if (last_command_success == COMMAND_SUCCESSFUL) {
+            res = smallParser(commands[i]);
+            last_command_success = res;
+        } else {
+            return COMMAND_FAILURE;
+        }
     }
     return res;
 }
@@ -251,7 +251,7 @@ void run_external_command(vector<string> &command, bool is_bg) {
             // Smash waits for command to finish
             pid_t wait_res = my_system_call(SYS_WAITPID, pid, &success, WUNTRACED);
 
-            if (wait_res == -1){
+            if (wait_res == -1) {
                 if (errno == EINTR) errno = 0; // clear errno
                 else perrorSmash("waitpid", "failed");
             }
@@ -262,6 +262,3 @@ void run_external_command(vector<string> &command, bool is_bg) {
         if (is_bg) jobs_list.add_job(command, pid);
     }
 }
-
-
-
