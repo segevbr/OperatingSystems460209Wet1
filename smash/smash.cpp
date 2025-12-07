@@ -288,7 +288,7 @@ void run_external_command(vector<string> &command, bool is_bg) {
 int alias(const vector<string> &args) {
     //validations
     if (args.size() < 2 || args[1].find('=') == string::npos) {
-        perrorSmash("alias", "invalid_arguments");
+        perrorSmash("alias", "invalid arguments");
         return COMMAND_FAILURE;
     }
 
@@ -306,7 +306,7 @@ int alias(const vector<string> &args) {
     string command_string_to_alias;
     split_by_equal(command_full, command_name_to_alias, command_string_to_alias);
     if (command_string_to_alias.front() != '"' || command_string_to_alias.back() != '"') {
-        perrorSmash("alias", "invalid_arguments");
+        perrorSmash("alias", "invalid arguments");
         return COMMAND_FAILURE;
     }
     command_string_to_alias = command_string_to_alias.substr(1, command_string_to_alias.size() - 2); //delete ""
@@ -319,13 +319,13 @@ int alias(const vector<string> &args) {
 int unalias(const vector<string> &args) {
 
     if(args.size() < 2){
-        perrorSmash("unalias", "invalid_arguments");
+        perrorSmash("unalias", "invalid arguments");
         return COMMAND_FAILURE;
     }
 
     auto alias_command = aliasTable.find(args[1]);
     if (alias_command == aliasTable.end()) { //no alias to delete
-        perrorSmash("unalias", "invalid_arguments");
+        perrorSmash("unalias", "invalid arguments");
         return COMMAND_FAILURE;
     }
 
