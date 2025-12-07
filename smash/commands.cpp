@@ -58,7 +58,7 @@ int kill(const vector<string> &args) {
 int fg(const vector<string> &args) {
     if (args.empty()) return COMMAND_FAILURE;
     if (args.size() == 1) {
-        return fg_func(0);
+        return fg_func(-1);
     } else if (args.size() == 2 && is_number(args[1])) {
         return fg_func(stoi(args[1]));
     }
@@ -197,7 +197,7 @@ int kill_func(int sig_num, int job_id) {
 }
 
 int fg_func(int job_id) {
-    if (job_id == 0) { // only fg was given
+    if (job_id == -1) { // only fg was given
         if (jobs_list.jobs_list.empty()) {
             perrorSmash("fg", "jobs list is empty");
             return COMMAND_FAILURE;
@@ -238,9 +238,14 @@ int fg_func(int job_id) {
     jobs_list.rem_job(job_id);
 
     // wait for new fg to finish
-    if (my_system_call(SYS_WAITPID, pid, NULL, WUNTRACED) == -1) {
-        perrorSmash("waitpid", "failed");
-        return COMMAND_FAILURE;
+	int status;
+	pid_t wait_res = my_system_call(SYS_WAITPID, pid, &status, WUNTRACED);
+    if (wait_res == -1) {
+		if (errno == EINTR) errno = 0;
+        else {
+			perrorSmash("waitpid", "falied");
+			return COMMAND_FAILURE;
+		}
     }
 
     // considering smash calls fg, after new fg process finish the new fg process
