@@ -125,8 +125,15 @@ int bigParser(char *line) {
 
     vector<string> commands;
 
+    bool in_quotes = false;
+
     while (*ptr) {
-        if (!strncmp(ptr, "&&", 2)) { // Success == 0
+        if (*ptr == '"') {
+            in_quotes = !in_quotes;
+            ptr++;
+            continue;
+        }
+        if (!in_quotes && !strncmp(ptr, "&&", 2)) { // Success == 0
             add_string_to_vector(commands, start, ptr);
             ptr += 2;
             start = ptr;
@@ -336,9 +343,10 @@ int alias(const vector<string> &args) {
     char *command_char_kochavit_to_alias = strdup(command_string_to_alias.c_str());
 
     auto alias_command = aliasTable.find(command_name_to_alias);
-    if (alias_command == aliasTable.end()) {// if command already alias
+    if (alias_command == aliasTable.end()) {// if command not already alias
         aliasTable[command_name_to_alias] = command_char_kochavit_to_alias;
     } else {
+        free(alias_command->second);
         alias_command->second = command_char_kochavit_to_alias;
     }
 
