@@ -206,6 +206,10 @@ int run_command(vector<string> &command) {
         if (alias_command == aliasTable.end()) {// command doesn't exist - external
             success = run_external_command(command, isBg);
         } else { //command is alias
+            if(command.size() > 1){
+                perrorSmash("alias", "invalid arguments");
+                return COMMAND_FAILURE;
+            }
             char *command_of_alias = alias_command->second;
             return bigParser(command_of_alias);
         }
